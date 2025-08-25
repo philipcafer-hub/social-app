@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mini Social App</title>
+  <title>Social App</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Mini Social Media</h1>
+  <h1>Social App</h1>
 
   <div id="auth">
     <h2>Sign Up</h2>
@@ -21,15 +21,15 @@
   </div>
 
   <div id="app" style="display:none;">
+    <span id="welcome"></span>
     <button onclick="logout()">Logout</button>
-    <h2>Make a Post</h2>
+    <h2>Create a Post</h2>
     <textarea id="post-content" maxlength="280"></textarea><br>
     <button onclick="createPost()">Post</button>
   </div>
 
   <h2>Feed</h2>
   <div id="feed"></div>
-  <div id="login-warning" style="display:none;">Log in to interact with posts.</div>
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="app.js"></script>
