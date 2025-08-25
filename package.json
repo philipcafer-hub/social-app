@@ -1,6 +1,6 @@
 {
   "name": "social-app-v2",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Real-time social media app with profiles, comments, reactions, follow system, modern dark theme",
   "main": "server.js",
   "scripts": {
@@ -13,6 +13,6 @@
     "jsonwebtoken": "^9.0.2",
     "sqlite3": "^5.1.6",
     "socket.io": "^4.7.2",
-    "multer": "^1.4.5"
+    "multer": "^1.4.4"  // updated to a version that exists
   }
 }
