@@ -1,7 +1,7 @@
 {
   "name": "social-app",
   "version": "1.0.0",
-  "description": "Simple social media app with Node, Express, SQLite, JWT",
+  "description": "Enhanced social media app with likes/dislikes and public feed",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
