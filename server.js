@@ -4,8 +4,12 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const path = require("path");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
 const db = new sqlite3.Database("./db.sqlite");
 const SECRET = "supersecret"; // change this in production
 
@@ -29,6 +33,17 @@ function auth(req, res, next) {
   } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
+}
+
+// Broadcast all posts to connected clients
+function broadcastPosts() {
+  db.all(
+    "SELECT posts.id, posts.content, posts.likes, posts.dislikes, posts.created_at, users.username, posts.user_id FROM posts JOIN users ON posts.user_id = users.id ORDER BY posts.created_at DESC",
+    [],
+    (err, rows) => {
+      io.emit("posts", rows);
+    }
+  );
 }
 
 // Signup
@@ -62,61 +77,16 @@ app.post("/api/logout", (req, res) => {
 
 // Get posts (public)
 app.get("/api/posts", (req, res) => {
-  db.all("SELECT posts.id, posts.content, posts.likes, posts.dislikes, posts.created_at, users.username, posts.user_id FROM posts JOIN users ON posts.user_id = users.id ORDER BY posts.created_at DESC", [], (err, rows) => {
-    res.json(rows);
-  });
-});
-
-// Create post
-app.post("/api/posts", auth, (req, res) => {
-  const { content } = req.body;
-  db.run("INSERT INTO posts (user_id, content) VALUES (?, ?)", [req.user.id, content], function (err) {
-    if (err) return res.status(500).json({ error: "Failed to post" });
-    res.json({ id: this.lastID, content, username: req.user.username, created_at: new Date(), likes: 0, dislikes: 0 });
-  });
-});
-
-// Delete post
-app.delete("/api/posts/:id", auth, (req, res) => {
-  const { id } = req.params;
-  db.run("DELETE FROM posts WHERE id = ? AND user_id = ?", [id, req.user.id], function (err) {
-    if (this.changes === 0) return res.status(403).json({ error: "Not allowed" });
-    res.json({ success: true });
-  });
-});
-
-// Like post
-app.post("/api/posts/:id/like", auth, (req, res) => {
-  db.run("UPDATE posts SET likes = likes + 1 WHERE id = ?", [req.params.id], function(err){
-    res.json({ success: true });
-  });
-});
-
-// Dislike post
-app.post("/api/posts/:id/dislike", auth, (req, res) => {
-  db.run("UPDATE posts SET dislikes = dislikes + 1 WHERE id = ?", [req.params.id], function(err){
-    res.json({ success: true });
-  });
-});
-
-// Start server
-const http = require("http");
-const server = http.createServer(app);
-const { Server } = require("socket.io");
-const io = new Server(server, { cors: { origin: "*" } });
-
-// Emit updated posts to all clients
-function broadcastPosts() {
   db.all(
     "SELECT posts.id, posts.content, posts.likes, posts.dislikes, posts.created_at, users.username, posts.user_id FROM posts JOIN users ON posts.user_id = users.id ORDER BY posts.created_at DESC",
     [],
     (err, rows) => {
-      io.emit("posts", rows);
+      res.json(rows);
     }
   );
-}
+});
 
-// Replace all routes that change posts with broadcast
+// Create post
 app.post("/api/posts", auth, (req, res) => {
   const { content } = req.body;
   db.run("INSERT INTO posts (user_id, content) VALUES (?, ?)", [req.user.id, content], function(err){
@@ -126,6 +96,7 @@ app.post("/api/posts", auth, (req, res) => {
   });
 });
 
+// Delete post
 app.delete("/api/posts/:id", auth, (req, res) => {
   const { id } = req.params;
   db.run("DELETE FROM posts WHERE id = ? AND user_id = ?", [id, req.user.id], function(err){
@@ -135,6 +106,7 @@ app.delete("/api/posts/:id", auth, (req, res) => {
   });
 });
 
+// Like post
 app.post("/api/posts/:id/like", auth, (req, res) => {
   db.run("UPDATE posts SET likes = likes + 1 WHERE id = ?", [req.params.id], function(err){
     broadcastPosts();
@@ -142,6 +114,7 @@ app.post("/api/posts/:id/like", auth, (req, res) => {
   });
 });
 
+// Dislike post
 app.post("/api/posts/:id/dislike", auth, (req, res) => {
   db.run("UPDATE posts SET dislikes = dislikes + 1 WHERE id = ?", [req.params.id], function(err){
     broadcastPosts();
@@ -149,6 +122,10 @@ app.post("/api/posts/:id/dislike", auth, (req, res) => {
   });
 });
 
-// Start server
+// Socket.IO connection
+io.on("connection", (socket) => {
+  broadcastPosts(); // Send initial posts on connection
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
