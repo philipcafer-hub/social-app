@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mini Social App</title>
+  <title>Social App V2</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Mini Social Media</h1>
+  <h1>Social App V2</h1>
 
   <div id="auth">
     <h2>Sign Up</h2>
@@ -21,8 +21,11 @@
   </div>
 
   <div id="app" style="display:none;">
-    <button onclick="logout()">Logout</button>
-    <h2>Make a Post</h2>
+    <div id="user-bar">
+      <span id="welcome"></span>
+      <button onclick="logout()">Logout</button>
+    </div>
+    <h2>Create a Post</h2>
     <textarea id="post-content" maxlength="280"></textarea><br>
     <button onclick="createPost()">Post</button>
   </div>
@@ -35,4 +38,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-
