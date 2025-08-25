@@ -50,22 +50,30 @@ async function createPost(){
 }
 
 // Delete post
-async function deletePost(id){ await fetch(`/api/posts/${id}`,{method:"DELETE"}); }
+async function deletePost(id){ 
+  await fetch(`/api/posts/${id}`,{method:"DELETE"});
+}
 
-// Feed
-socket.on("posts",({posts})=>{
-  const feed=document.getElementById("feed"); feed.innerHTML="";
-  posts.forEach(p=>{
-    const div=document.createElement("div"); div.className="post";
+// Feed rendering
+socket.on("posts", ({ posts }) => {
+  const feed = document.getElementById("feed");
+  feed.innerHTML = "";
 
-    let actions="";
-    if(window.currentUser && window.currentUser.id===p.user_id) actions+=`<button onclick="deletePost(${p.id})">Delete</button>`;
+  posts.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "post";
 
-    // Convert timestamp
+    // Delete button only for logged-in owner
+    let actions = "";
+    if (window.currentUser && window.currentUser.id === p.user_id) {
+      actions += `<button onclick="deletePost(${p.id})">Delete</button>`;
+    }
+
+    // Timestamp
     const date = new Date(p.created_at);
     const timestamp = date.toLocaleString();
 
-    div.innerHTML=`<b>@${p.username}</b> <small>${timestamp}</small>:<br>${p.content}<br>${actions}`;
+    div.innerHTML = `<b>@${p.username}</b> <small>${timestamp}</small>:<br>${p.content}<br>${actions}`;
     feed.appendChild(div);
   });
 });
