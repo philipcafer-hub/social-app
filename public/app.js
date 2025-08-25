@@ -29,16 +29,18 @@ async function login() {
     document.getElementById("auth").style.display="none";
     document.getElementById("app").style.display="block";
     document.getElementById("welcome").innerText=`Welcome, ${data.username}`;
+    socket.emit("requestPosts"); // update feed
   } else alert(data.error);
 }
 
 // Logout
-async function logout(){
+async function logout() {
   await fetch("/api/logout",{method:"POST"});
   window.currentUser=null;
   document.getElementById("auth").style.display="block";
   document.getElementById("app").style.display="none";
   document.getElementById("welcome").innerText="";
+  socket.emit("requestPosts"); // force feed re-render to hide delete buttons
 }
 
 // Create post
