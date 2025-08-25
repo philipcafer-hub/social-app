@@ -66,4 +66,29 @@ async function loadPosts() {
 
 async function createPost() {
   const content = document.getElementById("post-content").value;
- 
+  await fetch("/api/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content })
+  });
+  document.getElementById("post-content").value = "";
+  loadPosts();
+}
+
+async function deletePost(id) {
+  await fetch(`/api/posts/${id}`, { method: "DELETE" });
+  loadPosts();
+}
+
+async function likePost(id) {
+  await fetch(`/api/posts/${id}/like`, { method: "POST" });
+  loadPosts();
+}
+
+async function dislikePost(id) {
+  await fetch(`/api/posts/${id}/dislike`, { method: "POST" });
+  loadPosts();
+}
+
+// Load posts on page load
+loadPosts();
