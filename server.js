@@ -3,7 +3,6 @@ const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
 
@@ -17,6 +16,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static("public"));
 
+// Create tables
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY,
@@ -27,8 +27,6 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY,
     user_id INTEGER,
     content TEXT,
-    likes INTEGER DEFAULT 0,
-    dislikes INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 });
@@ -44,26 +42,29 @@ function auth(req, res, next) {
   }
 }
 
+// Broadcast posts to all clients
 function broadcastPosts() {
   db.all(
-    `SELECT posts.id, posts.content, posts.likes, posts.dislikes, posts.created_at,
+    `SELECT posts.id, posts.content, posts.created_at,
             users.username, posts.user_id
      FROM posts
      JOIN users ON posts.user_id = users.id
      ORDER BY posts.created_at DESC`,
     [],
-    (err, posts) => { io.emit("posts", { posts }); }
+    (err, posts) => {
+      if (!err) io.emit("posts", { posts });
+    }
   );
 }
 
-// Auth Routes
+// Auth
 app.post("/api/signup", async (req, res) => {
   const { username, password } = req.body;
   const hash = await bcrypt.hash(password, 10);
   db.run(
     "INSERT INTO users (username, password) VALUES (?, ?)",
     [username, hash],
-    function (err) {
+    function(err) {
       if (err) return res.status(400).json({ error: "Username taken" });
       res.json({ success: true });
     }
@@ -104,22 +105,15 @@ app.delete("/api/posts/:id", auth, (req, res) => {
   });
 });
 
-app.post("/api/posts/:id/like", auth, (req, res) => {
-  db.run("UPDATE posts SET likes = likes + 1 WHERE id = ?", [req.params.id], () => {
-    broadcastPosts();
-    res.json({ success: true });
-  });
-});
-
-app.post("/api/posts/:id/dislike", auth, (req, res) => {
-  db.run("UPDATE posts SET dislikes = dislikes + 1 WHERE id = ?", [req.params.id], () => {
-    broadcastPosts();
-    res.json({ success: true });
-  });
-});
-
 // Socket.IO
-io.on("connection", () => { broadcastPosts(); });
+io.on("connection", (socket) => {
+  broadcastPosts();
+
+  // Allow client to request fresh posts
+  socket.on("requestPosts", () => {
+    broadcastPosts();
+  });
+});
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
