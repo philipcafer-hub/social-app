@@ -1,4 +1,3 @@
-/* General body */
 body {
   font-family: 'Inter', 'Segoe UI', sans-serif;
   background: #121212;
@@ -10,8 +9,10 @@ body {
   align-items: center;
 }
 
-/* Container */
-#app, #auth {
+h1 { text-align: center; color: #00bfa6; margin-top: 30px; }
+h2 { color: #00bfa6; margin-bottom: 10px; }
+
+#auth, #app {
   background: #1e1e1e;
   padding: 25px;
   margin: 20px;
@@ -21,19 +22,6 @@ body {
   box-shadow: 0 0 20px rgba(0,0,0,0.6);
 }
 
-/* Headings */
-h1 {
-  text-align: center;
-  color: #00bfa6;
-  margin-top: 30px;
-}
-
-h2 {
-  color: #00bfa6;
-  margin-bottom: 10px;
-}
-
-/* Inputs and textarea */
 input, textarea {
   width: 100%;
   padding: 12px;
@@ -46,11 +34,8 @@ input, textarea {
   font-size: 1rem;
 }
 
-input::placeholder, textarea::placeholder {
-  color: #888;
-}
+input::placeholder, textarea::placeholder { color: #888; }
 
-/* Buttons */
 button {
   padding: 10px 20px;
   margin: 5px 2px;
@@ -62,14 +47,10 @@ button {
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
+button:hover { background: #00d4b0; transform: translateY(-2px); }
 
-button:hover {
-  background: #00d4b0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-}
+#feed { width: 90%; max-width: 600px; margin-bottom: 30px; }
 
-/* Posts */
 .post {
   background: #1e1e1e;
   padding: 15px 20px;
@@ -78,43 +59,15 @@ button:hover {
   box-shadow: 0 2px 12px rgba(0,0,0,0.5);
   transition: all 0.2s ease-in-out;
 }
+.post:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
 
-.post:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-}
+.post-header { display: flex; align-items: center; margin-bottom: 8px; }
+.post-header img { width: 35px; height: 35px; border-radius: 50%; margin-right: 10px; }
+.post-header b { color: #00ffe0; }
 
-.post b {
-  color: #00ffe0;
-}
+.post-content { margin-bottom: 8px; }
+.post-actions button { margin-right: 5px; }
 
-.post small {
-  color: #888;
-  font-size: 0.8rem;
-}
+.comment { background: #2a2a2a; padding: 5px 10px; border-radius: 8px; margin-top: 5px; }
 
-/* Feed container */
-#feed {
-  width: 90%;
-  max-width: 600px;
-  margin-bottom: 30px;
-}
-
-/* Login warning */
-#login-warning {
-  color: #ff6b6b;
-  text-align: center;
-  margin-bottom: 20px;
-  font-weight: bold;
-}
-
-/* Scrollbar for feed */
-#feed::-webkit-scrollbar {
-  width: 8px;
-}
-
-#feed::-webkit-scrollbar-thumb {
-  background: #00bfa6;
-  border-radius: 4px;
-}
-
+#login-warning { color: #ff6b6b; text-align: center; margin-bottom: 20px; font-weight: bold; }
