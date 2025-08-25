@@ -6,7 +6,8 @@ async function signup() {
   const username = document.getElementById("signup-username").value;
   const password = document.getElementById("signup-password").value;
   const res = await fetch("/api/signup", {
-    method:"POST", headers:{"Content-Type":"application/json"},
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify({username,password})
   });
   const data = await res.json();
@@ -18,7 +19,8 @@ async function login() {
   const username = document.getElementById("login-username").value;
   const password = document.getElementById("login-password").value;
   const res = await fetch("/api/login", {
-    method:"POST", headers:{"Content-Type":"application/json"},
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
     body:JSON.stringify({username,password})
   });
   const data = await res.json();
@@ -50,19 +52,20 @@ async function createPost(){
 // Delete post
 async function deletePost(id){ await fetch(`/api/posts/${id}`,{method:"DELETE"}); }
 
-// Like / Dislike
-async function likePost(id){ await fetch(`/api/posts/${id}/like`,{method:"POST"}); }
-async function dislikePost(id){ await fetch(`/api/posts/${id}/dislike`,{method:"POST"}); }
-
 // Feed
 socket.on("posts",({posts})=>{
   const feed=document.getElementById("feed"); feed.innerHTML="";
   posts.forEach(p=>{
     const div=document.createElement("div"); div.className="post";
+
     let actions="";
     if(window.currentUser && window.currentUser.id===p.user_id) actions+=`<button onclick="deletePost(${p.id})">Delete</button>`;
-    if(window.currentUser) actions+=` <button onclick="likePost(${p.id})">👍 ${p.likes}</button> <button onclick="dislikePost(${p.id})">👎 ${p.dislikes}</button>`;
-    div.innerHTML=`<b>@${p.username}</b>: ${p.content}<br>${actions}`;
+
+    // Convert timestamp
+    const date = new Date(p.created_at);
+    const timestamp = date.toLocaleString();
+
+    div.innerHTML=`<b>@${p.username}</b> <small>${timestamp}</small>:<br>${p.content}<br>${actions}`;
     feed.appendChild(div);
   });
 });
