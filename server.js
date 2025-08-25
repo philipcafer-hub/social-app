@@ -18,10 +18,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static("public"));
 
-// Set up storage for avatars (optional, for now just placeholder)
-const upload = multer({ dest: 'public/avatars/' });
+const upload = multer({ dest: "public/avatars/" });
 
-// Tables
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY,
@@ -52,7 +50,6 @@ db.serialize(() => {
   )`);
 });
 
-// Auth middleware
 function auth(req, res, next) {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ error: "Not authenticated" });
@@ -64,7 +61,6 @@ function auth(req, res, next) {
   }
 }
 
-// Broadcast posts with reactions and comments
 function broadcastPosts() {
   db.all(
     `SELECT posts.id, posts.content, posts.likes, posts.dislikes, posts.created_at,
@@ -75,27 +71,34 @@ function broadcastPosts() {
     [],
     (err, posts) => {
       if (err) return;
-      db.all(`SELECT comments.id, comments.post_id, comments.user_id, comments.content,
-                     comments.created_at, users.username
-              FROM comments
-              JOIN users ON comments.user_id = users.id`, [], (err2, comments) => {
-        io.emit("posts", { posts, comments });
-      });
+      db.all(
+        `SELECT comments.id, comments.post_id, comments.user_id, comments.content,
+                comments.created_at, users.username
+         FROM comments
+         JOIN users ON comments.user_id = users.id`,
+        [],
+        (err2, comments) => {
+          io.emit("posts", { posts, comments });
+        }
+      );
     }
   );
 }
 
-// Sign up
+// Auth Routes
 app.post("/api/signup", async (req, res) => {
   const { username, password } = req.body;
   const hash = await bcrypt.hash(password, 10);
-  db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, hash], function (err) {
-    if (err) return res.status(400).json({ error: "Username already taken" });
-    res.json({ success: true });
-  });
+  db.run(
+    "INSERT INTO users (username, password) VALUES (?, ?)",
+    [username, hash],
+    function (err) {
+      if (err) return res.status(400).json({ error: "Username taken" });
+      res.json({ success: true });
+    }
+  );
 });
 
-// Login
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
   db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
@@ -108,7 +111,6 @@ app.post("/api/login", (req, res) => {
   });
 });
 
-// Logout
 app.post("/api/logout", (req, res) => {
   res.clearCookie("token");
   res.json({ success: true });
@@ -117,14 +119,15 @@ app.post("/api/logout", (req, res) => {
 // Follow / Unfollow
 app.post("/api/follow/:id", auth, (req, res) => {
   const { id } = req.params;
-  db.run("INSERT OR IGNORE INTO follows (follower_id, following_id) VALUES (?, ?)", [req.user.id, id], function(err){
+  if (id == req.user.id) return res.json({ error: "Cannot follow yourself" });
+  db.run("INSERT OR IGNORE INTO follows (follower_id, following_id) VALUES (?, ?)", [req.user.id, id], () => {
     broadcastPosts();
     res.json({ success: true });
   });
 });
 app.post("/api/unfollow/:id", auth, (req, res) => {
   const { id } = req.params;
-  db.run("DELETE FROM follows WHERE follower_id = ? AND following_id = ?", [req.user.id, id], function(err){
+  db.run("DELETE FROM follows WHERE follower_id = ? AND following_id = ?", [req.user.id, id], () => {
     broadcastPosts();
     res.json({ success: true });
   });
@@ -133,7 +136,8 @@ app.post("/api/unfollow/:id", auth, (req, res) => {
 // Posts
 app.post("/api/posts", auth, (req, res) => {
   const { content } = req.body;
-  db.run("INSERT INTO posts (user_id, content) VALUES (?, ?)", [req.user.id, content], function(err){
+  if (!content) return res.status(400).json({ error: "Post cannot be empty" });
+  db.run("INSERT INTO posts (user_id, content) VALUES (?, ?)", [req.user.id, content], () => {
     broadcastPosts();
     res.json({ success: true });
   });
@@ -141,21 +145,21 @@ app.post("/api/posts", auth, (req, res) => {
 
 app.delete("/api/posts/:id", auth, (req, res) => {
   const { id } = req.params;
-  db.run("DELETE FROM posts WHERE id = ? AND user_id = ?", [id, req.user.id], function(err){
+  db.run("DELETE FROM posts WHERE id = ? AND user_id = ?", [id, req.user.id], () => {
     broadcastPosts();
     res.json({ success: true });
   });
 });
 
 app.post("/api/posts/:id/like", auth, (req, res) => {
-  db.run("UPDATE posts SET likes = likes + 1 WHERE id = ?", [req.params.id], function(err){
+  db.run("UPDATE posts SET likes = likes + 1 WHERE id = ?", [req.params.id], () => {
     broadcastPosts();
     res.json({ success: true });
   });
 });
 
 app.post("/api/posts/:id/dislike", auth, (req, res) => {
-  db.run("UPDATE posts SET dislikes = dislikes + 1 WHERE id = ?", [req.params.id], function(err){
+  db.run("UPDATE posts SET dislikes = dislikes + 1 WHERE id = ?", [req.params.id], () => {
     broadcastPosts();
     res.json({ success: true });
   });
@@ -164,21 +168,21 @@ app.post("/api/posts/:id/dislike", auth, (req, res) => {
 // Comments
 app.post("/api/posts/:id/comment", auth, (req, res) => {
   const { content } = req.body;
-  db.run("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)", [req.params.id, req.user.id, content], function(err){
-    broadcastPosts();
-    res.json({ success: true });
-  });
+  if (!content) return res.status(400).json({ error: "Comment cannot be empty" });
+  db.run(
+    "INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)",
+    [req.params.id, req.user.id, content],
+    () => {
+      broadcastPosts();
+      res.json({ success: true });
+    }
+  );
 });
 
 // Socket.IO
 io.on("connection", (socket) => {
   broadcastPosts();
 });
-
-// Start server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
