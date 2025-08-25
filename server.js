@@ -100,5 +100,55 @@ app.post("/api/posts/:id/dislike", auth, (req, res) => {
 });
 
 // Start server
+const http = require("http");
+const server = http.createServer(app);
+const { Server } = require("socket.io");
+const io = new Server(server, { cors: { origin: "*" } });
+
+// Emit updated posts to all clients
+function broadcastPosts() {
+  db.all(
+    "SELECT posts.id, posts.content, posts.likes, posts.dislikes, posts.created_at, users.username, posts.user_id FROM posts JOIN users ON posts.user_id = users.id ORDER BY posts.created_at DESC",
+    [],
+    (err, rows) => {
+      io.emit("posts", rows);
+    }
+  );
+}
+
+// Replace all routes that change posts with broadcast
+app.post("/api/posts", auth, (req, res) => {
+  const { content } = req.body;
+  db.run("INSERT INTO posts (user_id, content) VALUES (?, ?)", [req.user.id, content], function(err){
+    if(err) return res.status(500).json({error:"Failed to post"});
+    broadcastPosts();
+    res.json({ success: true });
+  });
+});
+
+app.delete("/api/posts/:id", auth, (req, res) => {
+  const { id } = req.params;
+  db.run("DELETE FROM posts WHERE id = ? AND user_id = ?", [id, req.user.id], function(err){
+    if(this.changes === 0) return res.status(403).json({error:"Not allowed"});
+    broadcastPosts();
+    res.json({ success: true });
+  });
+});
+
+app.post("/api/posts/:id/like", auth, (req, res) => {
+  db.run("UPDATE posts SET likes = likes + 1 WHERE id = ?", [req.params.id], function(err){
+    broadcastPosts();
+    res.json({ success: true });
+  });
+});
+
+app.post("/api/posts/:id/dislike", auth, (req, res) => {
+  db.run("UPDATE posts SET dislikes = dislikes + 1 WHERE id = ?", [req.params.id], function(err){
+    broadcastPosts();
+    res.json({ success: true });
+  });
+});
+
+// Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
